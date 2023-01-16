@@ -86,7 +86,7 @@ namespace File_Forge.HexEditor
     // Maintains a list of SelectionRange. The idea is to minimize memory usage: SelectAll in 193TB file for example,
     // will result in the creation of one SelectionRange. Selecting random bytes from it, will cause OutOfMemoryException
     // at some point.
-    internal class SelectionManager //TODO compress me
+    sealed internal class SelectionManager //TODO compress me
     {
         //TODONT optimize; no point as the user rarely selects more than 1 block at a time
         private List<SelectionRange> _ranges = new List<SelectionRange> ();
@@ -127,7 +127,7 @@ namespace File_Forge.HexEditor
         }
     }// SelectionManager
 
-    internal class FFHexTableViewSelectionId : SelectionId
+    sealed internal class FFHexTableViewSelectionId : SelectionId
     {
         public long ByteOffset { get; set; }
         public override bool Equals(object obj) { return ((FFHexTableViewSelectionId)obj).ByteOffset == ByteOffset; }
@@ -263,7 +263,7 @@ namespace File_Forge.HexEditor
         }
     }// FFHexTableViewCell
 
-    internal class FFHexTableViewHeaderCell : FFHexTableViewCell
+    sealed internal class FFHexTableViewHeaderCell : FFHexTableViewCell
     {
         public FFHexTableViewHeaderCell(string text, Wind.Controls.WTableViewRange h_range, Wind.Controls.WTableViewRange v_range,
             SelectionManager selection_manager, SelectionId selection_id)
@@ -280,7 +280,7 @@ namespace File_Forge.HexEditor
         }
     }// FFHexTableViewHeaderCell
 
-    internal class FFHexTableViewModel : Wind.Controls.IWTableViewModel
+    sealed internal class FFHexTableViewModel : Wind.Controls.IWTableViewModel
     {
         private Wind.Controls.WTableViewRange _column_header_row = new Wind.Controls.WTableViewRange ();
         // Using one distinct row range.
