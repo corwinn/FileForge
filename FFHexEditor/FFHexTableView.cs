@@ -348,7 +348,7 @@ namespace File_Forge.HexEditor
                 _c_pointer = q; return true;
             }
         }// ColumnHeader_Stream
-        class Data_Stream : CellStream
+        sealed class Data_Stream : CellStream
         {
             private Wind.Controls.WTableViewRange _row = null; // ref (1:1 with FFHexTableViewModel)
             private Stream _data = null;
