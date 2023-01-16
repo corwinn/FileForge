@@ -313,7 +313,7 @@ namespace File_Forge.HexEditor
         CellStream _column_header_stream = null;
         Data_Stream _data_stream = null;
         CellStream _current_stream = null;
-        class ColumnHeader_Stream : CellStream
+        sealed class ColumnHeader_Stream : CellStream
         {
             private Wind.Controls.WTableViewRange _colum_header_row = null; // ref (1:1 with FFHexTableViewModel)
             private List<FFHexTableViewCell> _header_cells = new List<FFHexTableViewCell> (); // cell cache
