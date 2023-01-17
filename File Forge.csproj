@@ -64,6 +64,7 @@
     </Compile>
     <Compile Include="FFNotTestedException.cs" />
     <Compile Include="FFSettings.cs" />
+    <Compile Include="FFUndoable.cs" />
     <Compile Include="FormMain.cs">
       <SubType>Form</SubType>
     </Compile>
