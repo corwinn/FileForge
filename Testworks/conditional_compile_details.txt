@@ -1,0 +1,1 @@
+TESTING_WORKS - use this to make testing-only interfaces available to the test-suite

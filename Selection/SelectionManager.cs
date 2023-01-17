@@ -69,12 +69,20 @@ namespace File_Forge.Selection
         private SelectionId _a = null, _b = null;
         private SelectionRange _next = null;
         private SelectionRange _prev = null;
+
         public SelectionRange() { }
         public SelectionRange(SelectionId a, SelectionId b) { Replace (a, b); }
 
+#if TESTING_WORKS
+        public SelectionId A { get { return _a; } }
+        public SelectionId B { get { return _b; } }
+        public SelectionRange Next { get { return _next; } }
+        public SelectionRange Prev { get { return _prev; } }
+#endif
+
         public SelectionRange Union(SelectionId id, bool range)
         {
-            throw new NotImplementedException ();
+            throw new FFNotTestedException ();
             if (null == _a) _a = id;
             else if (null == _b) _b = id;
             else
@@ -89,6 +97,23 @@ namespace File_Forge.Selection
             }
             return this;
         }
+        // LL.Add
+        private void Add(SelectionRange node)
+        {
+            node._prev = this;
+            node._next = _next;
+            if (null != _next) _next._prev = node;
+            _next = node;
+        }
+        // LL.Insert
+        private void Insert(SelectionRange node)
+        {
+            node._next = this;
+            node._prev = _prev;
+            if (null != _prev) _prev._next = node;
+            _prev = node;
+        }
+
         public void SplitRange(SelectionId id) //TODO temporary, for testing, until Union above is implemented
         {
             if (null == _a || null == _b || _a == _b) throw new ArgumentException ("Can't help you");
@@ -99,31 +124,19 @@ namespace File_Forge.Selection
             //
             var b = id.Create (id); b--;
             var a = id.Create (id); a++;
-            SelectionRange n = new SelectionRange (_a, b);
+            Insert (new SelectionRange (_a, b));
             _a = a;
-            n._next = this;
-            n._prev = _prev;
-            if (null != _prev) _prev._next = n;
-            _prev = n;
         }
-        public void Add(SelectionId id)//TODO this should have "bool set" parameter, in order to distinguish between SelectMany and SelectOne
+
+        public void Add(SelectionId id)//TODO has implicit "bool set = true"
         {
             if (null == _a) { _a = id; return; }
-            if (null == _b)
-            {
-                if (id < _a) throw new ArgumentException ("b can't be < a");
-                _b = id;
-                return;
-            }
-            if (_a.Sequential (id) && _b.Sequential (id)) ; //TODO merge
-            else
-            {
-                SelectionRange n = new SelectionRange (id, id);
-                n._prev = this;
-                n._next = _next;
-                if (null != _next) _next._prev = n;
-                _next = n;
-            }
+            // if (_a.Sequential (id)
+            //   && (   (null != _next && _next._a.Sequential (id))   //LATER merge (memory usage optimization)
+            //       || (null != _prev && _prev._a.Sequential (id)))) //
+            // else
+            if (id > _a) Add (new SelectionRange (id, null));
+            else Insert (new SelectionRange (id, null));
         }
 
         private bool Has(SelectionId id)
@@ -152,7 +165,7 @@ namespace File_Forge.Selection
         }
 
         public void Replace(SelectionId a, SelectionId b) { _a = a; _b = b; }
-    }
+    }// SelectionRange
 
     // Maintains a SelectionRange. The idea is to minimize memory usage (its a requirement actually): SelectAll in
     // 193TB file for example, will result in the creation of one SelectionRange. Selecting random bytes from it, will cause
@@ -172,6 +185,8 @@ namespace File_Forge.Selection
         //  - select: (no modifiers): current_selection = [A=B]
         //  - select: (union): current_selection = current_selection U [A;B]
         private int _stage = -1; // -1 - uninformed; 0 - began; 1 - ended as range;
+        //TODO deselect
+        //TODO FFUndoable
 
         // These shall be called by UI the event handlers.
         public SelectionManager BeginSelection() // Ctrl is held down, or an item is selected

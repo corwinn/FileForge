@@ -81,7 +81,13 @@ namespace Testworks.Selection
             Assert.IsFalse (_r.Contains (foo));
             foo.Value = int.MinValue;
             Assert.IsFalse (_r.Contains (foo));
+
+            Assert.IsNull (_r.A);
+            Assert.IsNull (_r.B);
+            Assert.IsNull (_r.Next);
+            Assert.IsNull (_r.Prev);
         }
+
 
         [Test, Category ("InitialBugs - temporary")]
         public void SearchNextEvenIfPrevIsNull()
@@ -97,5 +103,32 @@ namespace Testworks.Selection
             Assert.IsTrue (_r.Contains (d));
             Assert.IsTrue (_r.Contains (e));
         }
-    }
+
+        [Test, Category ("Add")]
+        public void Add()// Ctrl + Click distinct items
+        {
+            TestSelectionId a = new TestSelectionId (0);
+            TestSelectionId b = new TestSelectionId (5);
+            Assert.IsFalse (_r.Contains (a));
+            _r.Add (a); // [0;null]
+            Assert.IsNotNull (_r.A);
+            Assert.IsNull (_r.B);
+            Assert.IsNull (_r.Prev);
+            Assert.IsNull (_r.Next);
+            Assert.IsTrue (_r.Contains (a));
+            _r.Add (b); // _r->[0;null], [5;null]
+            Assert.IsNotNull (_r.A);
+            Assert.IsNull (_r.B);
+            Assert.IsNull (_r.Prev);
+            Assert.IsNotNull (_r.Next);
+            Assert.IsNotNull (_r.Next.A);
+            Assert.IsNotNull (_r.Next.Prev);
+            Assert.IsNull (_r.Next.B);
+            Assert.IsNull (_r.Next.Next);
+            Assert.IsTrue (_r.Contains (a));
+            Assert.IsTrue (_r.Contains (b)); // _r is a set, so it contains any of the input elemnts of the set
+            Assert.IsTrue (_r.Next.Contains (b));
+            Assert.IsTrue (_r.Next.Contains (a));
+        }
+    }// SelectionRangeTest
 }
