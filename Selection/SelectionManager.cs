@@ -37,6 +37,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo ("Testworks")]
+
 /*
     This code shall describe a selection decoupled from everything. //TODO to the windlib
     Let it be undo-able.
@@ -94,9 +96,10 @@ namespace File_Forge.Selection
         }
         public bool Contains(SelectionId id)
         {
-            // if not me, and not those before me and not those after me
-            throw new NotImplementedException ();
-            throw new FFNotTestedException ();
+            if (null == _a) return false;
+            if (id == _a) return true;
+            if (null != _b && (id >= _a && id <= _b)) return true;
+            return (null != _prev ? _prev.Contains (id) : false) && (null != _next ? _next.Contains (id) : false);
         }
         public void Replace(SelectionId a, SelectionId b) { _a = a; _b = b; }
     }
