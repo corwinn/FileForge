@@ -32,101 +32,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 **** END LICENCE BLOCK ****/
 
+using File_Forge.Selection;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace File_Forge.HexEditor
 {
-    // Bridge away the actual id. The idea is to write the selection manager once and reuse it everywhere.
-    internal abstract class SelectionId
-    {
-        public static bool operator <=(SelectionId l, SelectionId r) { return l.Equals (r) || l.LessThan (r); }
-        public static bool operator >=(SelectionId l, SelectionId r) { return l.Equals (r) || l.GreaterThan (r); }
-        public static bool operator <(SelectionId l, SelectionId r) { return l.LessThan (r); }
-        public static bool operator >(SelectionId l, SelectionId r) { return l.GreaterThan (r); }
-        protected abstract bool LessThan(SelectionId other);
-        protected abstract bool GreaterThan(SelectionId other);
-    }
-    internal class SelectionRange
-    {
-        private SelectionId _a = null, _b = null;
-        private List<SelectionId> _set = new List<SelectionId> ();
-        public bool Contains(SelectionId id) { return (id >= _a && id <= _b) || _set.Contains (id); }
-        public SelectionRange Union(SelectionId id, bool range)
-        {
-            if (null == _a) _a = id;
-            else if (null == _b) _b = id;
-            else
-            {
-                if (id < _a) { _b = _a; _a = id; } // thats how "Windows" "Explorer" behaves
-                else if (id > _b) _b = id;         //
-                else                               //
-                { // you selected inside a selection
-                    if (range) _b = id; // when the Shift is down, "b" is modified
-                    else SplitRange (id);//TODO bool deselect?
-                }
-            }
-            return this;
-        }
-        private void SplitRange(SelectionId id)
-        {
-            // either I inform the manager I'm becoming two ranges; or I'm a sub-manager - a.k.a SelectionRangeTreeNode
-            throw new NotImplementedException ();
-        }
-        public SelectionRange Add(SelectionId id)
-        {
-            // this has manager issues as well - a Ctrl-select could join two ranges; smells like a tree
-            throw new NotImplementedException ();
-        }
-    }
-    // Maintains a list of SelectionRange. The idea is to minimize memory usage: SelectAll in 193TB file for example,
-    // will result in the creation of one SelectionRange. Selecting random bytes from it, will cause OutOfMemoryException
-    // at some point.
-    sealed internal class SelectionManager //TODO compress me
-    {
-        //TODONT optimize; no point as the user rarely selects more than 1 block at a time
-        private List<SelectionRange> _ranges = new List<SelectionRange> ();
-
-        internal bool Selected(SelectionId selection_id)
-        {
-            if (null == selection_id) return false;
-            return _ranges.Where (r => r.Contains (selection_id)).Count () > 0;
-        }
-
-        private int _stage = -1; // -1 - uninformed; 0 - began; 1 - ended as range; 2 - ended as a set
-        SelectionRange _range = null;
-        // These shall be called by UI the event handlers.
-        public void BeginSelection() // Ctrl is held down, or an item is selected
-        {
-            _stage = 0;
-        }
-        public void EndSelection(bool range) // Ctrl is released, or an item is selected, or Shift is held down and an item is selected
-        {
-            _stage = range ? 1 : 2;
-        }
-        internal void Select(SelectionId selection_id)
-        {
-            if (null == selection_id) return;
-            switch (_stage)
-            {
-                case 0:
-                    {
-                        _range = _ranges.Where (r => r.Contains (selection_id)).FirstOrDefault ();
-                        if (null == _range) { _range = new SelectionRange (); _ranges.Add (_range); }
-                        _range.Union (selection_id, false);
-                    }
-                    break;
-                case 1: _range.Union (selection_id, true); _stage = -1; _range = null; break;
-                case 2: _range.Add (selection_id); _stage = -1; _range = null; break;
-                default: throw new Exception ("Fixme: your forgot to inform the SelectionManager whats happening.");
-            }
-        }
-    }// SelectionManager
-
     sealed internal class FFHexTableViewSelectionId : SelectionId
     {
         public long ByteOffset { get; set; }
@@ -134,6 +47,11 @@ namespace File_Forge.HexEditor
         public override int GetHashCode() { return ByteOffset.GetHashCode (); }
         protected override bool LessThan(SelectionId other) { return ByteOffset < ((FFHexTableViewSelectionId)other).ByteOffset; }
         protected override bool GreaterThan(SelectionId other) { return ByteOffset > ((FFHexTableViewSelectionId)other).ByteOffset; }
+        protected override bool Sequential(SelectionId id)
+        {
+            var ofs = ((FFHexTableViewSelectionId)id).ByteOffset;
+            return Math.Abs(ofs - ByteOffset) == 1;
+        }
     }
 
     // Bridges my cell to a SelectionManager.
