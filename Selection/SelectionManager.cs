@@ -54,9 +54,14 @@ namespace File_Forge.Selection
         public static bool operator >=(SelectionId l, SelectionId r) { return l.Equals (r) || l.GreaterThan (r); }
         public static bool operator <(SelectionId l, SelectionId r) { return l.LessThan (r); }
         public static bool operator >(SelectionId l, SelectionId r) { return l.GreaterThan (r); }
+        public static SelectionId operator ++(SelectionId obj) { return obj.Next (); }
+        public static SelectionId operator --(SelectionId obj) { return obj.Prev (); }
         protected abstract bool LessThan(SelectionId other);
         protected abstract bool GreaterThan(SelectionId other);
-        protected abstract bool Sequential(SelectionId id); // true when "this" and "id' are sequential
+        public abstract bool Sequential(SelectionId id); // true when "this" and "id' are sequential
+        protected abstract SelectionId Next();
+        protected abstract SelectionId Prev();
+        public abstract SelectionId Create(SelectionId copy_me);
     }
 
     sealed internal class SelectionRange
@@ -64,9 +69,12 @@ namespace File_Forge.Selection
         private SelectionId _a = null, _b = null;
         private SelectionRange _next = null;
         private SelectionRange _prev = null;
+        public SelectionRange() { }
+        public SelectionRange(SelectionId a, SelectionId b) { Replace (a, b); }
 
         public SelectionRange Union(SelectionId id, bool range)
         {
+            throw new NotImplementedException ();
             if (null == _a) _a = id;
             else if (null == _b) _b = id;
             else
@@ -81,32 +89,71 @@ namespace File_Forge.Selection
             }
             return this;
         }
-        private void SplitRange(SelectionId id)
+        public void SplitRange(SelectionId id) //TODO temporary, for testing, until Union above is implemented
         {
-            //TODO DLL.Insert(Node n)
-            throw new NotImplementedException ();
-            throw new FFNotTestedException ();
+            if (null == _a || null == _b || _a == _b) throw new ArgumentException ("Can't help you");
+            if (id < _a || id > _b) throw new ArgumentException ("Id shall be [a;b]");
+            // id was just de-selected
+            if (id == _b) { _b--; return; }
+            if (id == _a) { _a++; return; }
+            //
+            var b = id.Create (id); b--;
+            var a = id.Create (id); a++;
+            SelectionRange n = new SelectionRange (_a, b);
+            _a = a;
+            n._next = this;
+            n._prev = _prev;
+            if (null != _prev) _prev._next = n;
+            _prev = n;
         }
-        public SelectionRange Add(SelectionId id)
+        public void Add(SelectionId id)//TODO this should have "bool set" parameter, in order to distinguish between SelectMany and SelectOne
         {
-            // this has manager issues as well - a Ctrl-select could join two ranges; its an LL
-            //TODO SelectionRange.Add; use id.Sequential for the merge part
-            throw new NotImplementedException ();
-            throw new FFNotTestedException ();
+            if (null == _a) { _a = id; return; }
+            if (null == _b)
+            {
+                if (id < _a) throw new ArgumentException ("b can't be < a");
+                _b = id;
+                return;
+            }
+            if (_a.Sequential (id) && _b.Sequential (id)) ; //TODO merge
+            else
+            {
+                SelectionRange n = new SelectionRange (id, id);
+                n._prev = this;
+                n._next = _next;
+                if (null != _next) _next._prev = n;
+                _next = n;
+            }
         }
-        public bool Contains(SelectionId id)
+
+        private bool Has(SelectionId id)
         {
             if (null == _a) return false;
             if (id == _a) return true;
-            if (null != _b && (id >= _a && id <= _b)) return true;
-            return (null != _prev ? _prev.Contains (id) : false) && (null != _next ? _next.Contains (id) : false);
+            return null != _b && (id >= _a && id <= _b);
         }
+        private bool ContainsPrev(SelectionId id) // WalkPrev
+        {
+            if (null == _prev) return false;
+            if (_prev.Has (id)) return true;
+            else return _prev.ContainsPrev (id);
+        }
+        private bool ContainsNext(SelectionId id) // WalkNext
+        {
+            if (null == _next) return false;
+            if (_next.Has (id)) return true;
+            else return _next.ContainsPrev (id);
+        }
+        public bool Contains(SelectionId id)
+        {
+            if (Has (id)) return true;
+            if (ContainsPrev (id)) return true;
+            return ContainsNext (id);
+        }
+
         public void Replace(SelectionId a, SelectionId b) { _a = a; _b = b; }
     }
 
-    //TODO define requirements - especially the craft new FF from scratch ones; also, think about the repeating data patterns (records)
-    //     and the parametrized repeating patterns, and the possible patterns, and the recursive-ness of said patterns;
-    //     Level of detail: bit.
     // Maintains a SelectionRange. The idea is to minimize memory usage (its a requirement actually): SelectAll in
     // 193TB file for example, will result in the creation of one SelectionRange. Selecting random bytes from it, will cause
     // OutOfMemoryException at some point.

@@ -44,14 +44,21 @@ namespace Testworks.Selection
 
     sealed internal class TestSelectionId : TestNS.SelectionId
     {
+        public TestSelectionId() { }
+        public TestSelectionId(int v) { Value = v; }
         public int Value { get; set; }
         public override bool Equals(object obj) { return ((TestSelectionId)obj).Value == Value; }
         public override int GetHashCode() { return Value.GetHashCode (); }
         protected override bool LessThan(TestNS.SelectionId other) { return Value < ((TestSelectionId)other).Value; }
         protected override bool GreaterThan(TestNS.SelectionId other) { return Value > ((TestSelectionId)other).Value; }
-        protected override bool Sequential(TestNS.SelectionId id)
+        public override bool Sequential(TestNS.SelectionId id) { return Math.Abs (((TestSelectionId)id).Value - Value) == 1; }
+        protected override TestNS.SelectionId Next() { Value++; return this; }
+        protected override TestNS.SelectionId Prev() { Value--; return this; }
+        public override TestNS.SelectionId Create(TestNS.SelectionId copy_me)
         {
-            return Math.Abs (((TestSelectionId)id).Value - Value) == 1;
+            var result = new TestSelectionId();
+            result.Value = ((TestSelectionId)copy_me).Value;
+            return result;
         }
     }
 
@@ -74,6 +81,21 @@ namespace Testworks.Selection
             Assert.IsFalse (_r.Contains (foo));
             foo.Value = int.MinValue;
             Assert.IsFalse (_r.Contains (foo));
+        }
+
+        [Test, Category ("InitialBugs - temporary")]
+        public void SearchNextEvenIfPrevIsNull()
+        {
+            TestSelectionId a = new TestSelectionId (0);
+            TestSelectionId b = new TestSelectionId (5);
+            TestSelectionId c = new TestSelectionId (2);
+            TestSelectionId d = new TestSelectionId (7);
+            TestSelectionId e = new TestSelectionId (0);
+            _r.Replace (a, b); // [0;5]
+            _r.SplitRange (c);  // [0;1], _r->[3;5]
+            _r.Add (d); // [0;1], _r->[3;5], [7;7]
+            Assert.IsTrue (_r.Contains (d));
+            Assert.IsTrue (_r.Contains (e));
         }
     }
 }

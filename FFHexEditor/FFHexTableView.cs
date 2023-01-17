@@ -47,10 +47,17 @@ namespace File_Forge.HexEditor
         public override int GetHashCode() { return ByteOffset.GetHashCode (); }
         protected override bool LessThan(SelectionId other) { return ByteOffset < ((FFHexTableViewSelectionId)other).ByteOffset; }
         protected override bool GreaterThan(SelectionId other) { return ByteOffset > ((FFHexTableViewSelectionId)other).ByteOffset; }
-        protected override bool Sequential(SelectionId id)
+        public override bool Sequential(SelectionId id)
         {
             var ofs = ((FFHexTableViewSelectionId)id).ByteOffset;
             return Math.Abs(ofs - ByteOffset) == 1;
+        }
+        protected override SelectionId Next() { ByteOffset++; return this; }
+        protected override SelectionId Prev() { ByteOffset--; return this; }
+
+        public override SelectionId Create(SelectionId copy)
+        {
+            throw new NotImplementedException ();
         }
     }
 
