@@ -87,7 +87,7 @@ namespace File_Forge.Selection
             else if (null == _b) _b = id;
             else
             {
-                if (id < _a) { _b = _a; _a = id; } // thats how "Windows" "Explorer" behaves
+                if (id < _a) { _b = _a; _a = id; } // that's how "Windows" "Explorer" behaves
                 else if (id > _b) _b = id;         //
                 else                               //
                 { // you selected inside a selection

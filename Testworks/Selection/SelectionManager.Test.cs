@@ -126,7 +126,7 @@ namespace Testworks.Selection
             Assert.IsNull (_r.Next.B);
             Assert.IsNull (_r.Next.Next);
             Assert.IsTrue (_r.Contains (a));
-            Assert.IsTrue (_r.Contains (b)); // _r is a set, so it contains any of the input elemnts of the set
+            Assert.IsTrue (_r.Contains (b)); // _r is a set, so it contains any of the input elements of the set
             Assert.IsTrue (_r.Next.Contains (b));
             Assert.IsTrue (_r.Next.Contains (a));
         }
